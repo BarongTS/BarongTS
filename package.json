@@ -1,0 +1,45 @@
+{
+  "name": "barong-ts",
+  "version": "1.0.0",
+  "description": "A beginner friendly CLI tool to quickly set up Typescript projects",
+  "main": "dist/cli.js",
+  "type": "module",
+  "bin": {
+    "barong": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.[t|j]sx?$": "babel-jest"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BarongTS/BarongTS.git"
+  },
+  "keywords": [
+    "typescript",
+    "cli",
+    "setup",
+    "beginner"
+  ],
+  "author": "Mipan-Zuzu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/BarongTS/BarongTS/issues"
+  },
+  "homepage": "https://github.com/BarongTS/BarongTS#readme",
+  "devDependencies": {
+    "@babel/preset-env": "^7.29.0",
+    "@babel/preset-typescript": "^7.28.5",
+    "@jest/globals": "^30.3.0",
+    "@types/jest": "^30.0.0",
+    "babel-jest": "^30.3.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3"
+  }
+}
