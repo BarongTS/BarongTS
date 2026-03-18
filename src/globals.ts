@@ -1,9 +1,10 @@
 export const log = console.log
-export interface Menu {
-    type: string
+
+export type SelectedStack = string | string[]
+
+export interface CreateFile {
     name: string
-    message: string
-    choices: string[]
-    pageSize: number
-     category: string;
+    path: string
+    stack: string
 }
+
