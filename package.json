@@ -1,6 +1,6 @@
 {
   "name": "@barong/barong-ts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A beginner friendly CLI tool to quickly set up Typescript projects",
   "main": "dist/cli.js",
   "type": "module",
