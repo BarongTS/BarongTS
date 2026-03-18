@@ -1,7 +1,7 @@
 
 <p align="center">
   <a href="https://github.com/BarongTS/BarongTS">
-    <img src=".github/images/barong.ico.png" width="50%">
+    <img src="images/barong.ico.png" width="30%">
   </a>
 </p>
 
