@@ -1,49 +1,99 @@
 import { createPromptModule } from "inquirer";
 import { execSync } from "child_process";
 import path from "path";
-import fs from "fs"; import { fileURLToPath } from "url";
-import chalk from 'chalk';
-import type { Menu } from "./globals.js";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import chalk from "chalk";
 
-async function main() {
-  const asciiPath: string = path.join( path.dirname(fileURLToPath(import.meta.url)), "..", "ascii.txt" ); if (fs.existsSync(asciiPath)) { const art: string = fs.readFileSync(asciiPath, "utf-8"); console.log(chalk.blue(art)); }
+import { log, type CreateFile, type SelectedStack } from "./globals.js";
+import {
+  BackendPackages,
+  FrontendCommands,
+  NextCommand,
+} from "./main.js";
 
-  console.log(chalk.bgGreen(" Welcome to BarongTS  "))
-  const prompt = createPromptModule();
+function runCommand(command: string, cwd: string) {
+  try {
+    execSync(command, {
+      stdio: "inherit",
+      cwd,
+    });
+  } catch {
+    log(chalk.red(`❌ Failed: ${command}`));
+  }
+}
 
-
-  function withCtrlX<T>(fn: () => Promise<T>) {
-    return new Promise<T>((resolve, reject) => {
-      const onData = (chunk: Buffer) => {
-        if (chunk[0] === 0x18 || chunk[0] === 0x03) {
-          cleanup();
-          reject(new Error("User canceled"));
-        }
-      };
-
-      const onSigint = () => {
+function withCtrlX<T>(fn: () => Promise<T>) {
+  return new Promise<T>((resolve, reject) => {
+    const onData = (chunk: Buffer) => {
+      if (chunk[0] === 0x18 || chunk[0] === 0x03) {
         cleanup();
         reject(new Error("User canceled"));
-      };
+      }
+    };
 
-      const cleanup = () => {
-        process.stdin.removeListener("data", onData);
-        process.removeListener("SIGINT", onSigint);
-      };
+    const onSigint = () => {
+      cleanup();
+      reject(new Error("User canceled"));
+    };
 
-      process.stdin.on("data", onData);
-      process.once("SIGINT", onSigint);
+    const cleanup = () => {
+      process.stdin.removeListener("data", onData);
+      process.removeListener("SIGINT", onSigint);
+    };
 
-      fn()
-        .then((result) => {
-          cleanup();
-          resolve(result);
-        })
-        .catch((err) => {
-          cleanup();
-          reject(err);
-        });
-    });
+    process.stdin.on("data", onData);
+    process.once("SIGINT", onSigint);
+
+    fn()
+      .then((result) => {
+        cleanup();
+        resolve(result);
+      })
+      .catch((err) => {
+        cleanup();
+        reject(err);
+      });
+  });
+}
+
+async function main() {
+  const asciiPath = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "ascii.txt"
+  );
+
+  if (fs.existsSync(asciiPath)) {
+    const art = fs.readFileSync(asciiPath, "utf-8");
+    console.log(chalk.blue(art));
+  }
+
+  log(chalk.bgGreen(" Welcome to BarongTS "));
+
+  const prompt = createPromptModule();
+  const currentPath = process.cwd();
+
+  const projectInfo = await withCtrlX(() =>
+    prompt([
+      {
+        type: "input",
+        name: "projectName",
+        message: "Project name:",
+        default: "my-barong-app",
+        validate: (input) =>
+          input.trim() ? true : "Project name cannot be empty",
+      },
+    ])
+  );
+
+  const projectName = projectInfo.projectName;
+  const projectPath = path.join(currentPath, projectName);
+
+  log(chalk.cyan(`\n📁 Project: ${projectName}\n`));
+
+  if (!fs.existsSync(projectPath)) {
+    fs.mkdirSync(projectPath);
   }
 
   let continueMenu = true;
@@ -56,24 +106,19 @@ async function main() {
             type: "select",
             name: "category",
             message: "Select project type:",
-            choices: [
-                "Backend TS", 
-                "Frontend TS", 
-                "Fullstack TS", 
-                "Exit"],
-            pageSize: 10,
+            choices: ["Backend TS", "Frontend TS", "Exit"],
           },
         ])
       );
 
-    if (mainMenu.category === "Exit") {      console.clear();      console.log(chalk.red("\n❌ Thank you for using BarongTS CLI. Goodbye!\n"));
-      break;
-    }
+      if (mainMenu.category === "Exit") {
+        log(chalk.red("\n❌ Success with no changes!\n"));
+        break;
+      }
 
-    let selectedStack: string | string[] | null = null;
+      let selectedStack: SelectedStack | null = null;
 
-    switch (mainMenu.category) {
-      case "Backend TS": {
+      if (mainMenu.category === "Backend TS") {
         const backendMenu = await withCtrlX(() =>
           prompt([
             {
@@ -81,21 +126,46 @@ async function main() {
               name: "backend",
               message: "Select backend stack:",
               choices: [
-                "Node.js + TS (Recommended)",
-                "Express + TS",
-                "NestJS + TS",
-                "⬅ Back",
+                {
+                  name: "Node.js + TS (Recommended)",
+                  value: "node_recommended",
+                  description: "express prisma typescript jest"
+                },
+                {
+                  name: "NestJS + TS",
+                  value: "nestjs",
+                  description: "nestjs prisma typescript"
+                },
+                {
+                  name: "Fastify + TS",
+                  value: "fastify",
+                  description: "fastify prisma typescript"
+                },
+                {
+                  name: "Node.js + TS + MongoDB",
+                  value: "node_mongo",
+                  description: "express mongoose typescript"
+                },
+                {
+                  name: "Minimal Backend",
+                  value: "minimal",
+                  description: "typescript"
+                },
+                {
+                  name: "⬅ Back",
+                  value: "back",
+                },
               ],
-              pageSize: 10,
-              pointer: chalk.green(' ❯ '),
             },
           ])
         );
-        if (backendMenu.backend !== "⬅ Back") selectedStack = backendMenu.backend;
-        break;
+
+        if (backendMenu.backend !== "back") {
+          selectedStack = backendMenu.backend;
+        }
       }
 
-      case "Frontend TS": {
+      if (mainMenu.category === "Frontend TS") {
         const frontendMenu = await withCtrlX(() =>
           prompt([
             {
@@ -103,122 +173,129 @@ async function main() {
               name: "frontend",
               message: "Select frontend stack:",
               choices: [
-                "React + TS (Recommended)",
-                "Vue + TS",
-                "Svelte + TS",
-                "Next.js + TS",
-                "⬅ Back",
+                {
+                  name: "React + TS",
+                  value: "react",
+                },
+                {
+                  name: "Next.js + TS",
+                  value: "next",
+                },
+                {
+                  name: "Vue + TS",
+                  value: "vue",
+                },
+                {
+                  name: "Svelte + TS",
+                  value: "svelte",
+                },
+                {
+                  name: "⬅ Back",
+                  value: "back",
+                },
               ],
-              pageSize: 10,
-              pointer: chalk.green(' ❯ '),
             },
           ])
         );
-        if (frontendMenu.frontend !== "⬅ Back") selectedStack = frontendMenu.frontend;
-        break;
+
+        if (frontendMenu.frontend !== "back") {
+          selectedStack = frontendMenu.frontend;
+        }
       }
 
-      case "Fullstack TS": {
-        const fullstackMenu = await withCtrlX(() =>
-          prompt([
-            {
-              type: "select",
-              name: "fullstack",
-              message: "Select fullstack stack:",
-              choices: [
-                "Fullstack Vite + React + Express + Jest + Docker",
-                "Fullstack Node + Vue + Express + Docker",
-                "Fullstack NestJS + Next.js",
-                "⬅ Back",
-              ],
-              pageSize: 10,
-              pointer: chalk.green(' ❯ '),
-            },
-          ])
-        );
-        if (fullstackMenu.fullstack !== "⬅ Back") selectedStack = fullstackMenu.fullstack;
-        break;
-      }
-    }
-
-    // Jika user pilih "Back", langsung kembali ke main menu
-    if (selectedStack === null) {
-      console.clear();
-      console.log(chalk.blue("\n⬅️ Back to main menu...\n"));
-      continue;
-    }
-
-    // Jika user pilih stack yang valid
-    if (selectedStack) {
-      console.clear();
-      console.log(`\n✨ You selected: ${mainMenu.category} → ${selectedStack}\n`);
-
-      // Multi-select fitur tambahan
-      const featureMenu = await withCtrlX(() =>
-        prompt([
-          {
-            type: "checkbox",
-            name: "features",
-            message: "Select additional features (optional):",
-            choices: ["TypeScript", "ESLint", "Prettier", "Tailwind CSS"],
-            pageSize: 10,
-          },
-        ])
-      );
-
-      if (featureMenu.features.length > 0) {
-        console.log("Additional features:", featureMenu.features.join(", "));
+      if (!selectedStack) {
+        log(chalk.yellow("\n⬅ Back to main menu...\n"));
+        continue;
       }
 
-      console.clear();
+      log(`\n✨ You selected: ${selectedStack}\n`);
 
-      // Konfirmasi install dependencies
       const confirmInstall = await withCtrlX(() =>
         prompt([
           {
             type: "confirm",
             name: "installDeps",
-            message: "Do you want to install dependencies now?",
+            message: "Install dependencies now?",
             default: true,
           },
         ])
       );
 
       if (confirmInstall.installDeps) {
-        console.clear();
-        console.log(`\n📦 Installing ${selectedStack} dependencies...`);
-        // Disini bisa diganti execSync sesuai stack
-        console.log("🔍 Installation simulated (replace with npm install commands)");
-      } else {
-        console.clear();
-        console.log("⏭️ Skipping installation.");
+        log(`\n📦 Installing ${selectedStack}...\n`);
+
+        if (selectedStack in BackendPackages) {
+          runCommand("npm init -y", projectPath);
+
+          const stack = BackendPackages[
+  selectedStack as keyof typeof BackendPackages
+]!; 
+
+          runCommand(`npm install ${stack.deps.join(" ")}`, projectPath);
+
+          runCommand(`npm install -D ${stack.devDeps.join(" ")}`, projectPath);
+
+          runCommand("npx tsc --init", projectPath);
+
+          runCommand("npm audit fix", projectPath);
+        }
+
+        if (selectedStack in FrontendCommands) {
+          const template =
+            FrontendCommands[selectedStack as keyof typeof FrontendCommands];
+
+          runCommand(
+            `npm create vite@latest . -- --template ${template}`,
+            projectPath
+          );
+        }
+
+        if (selectedStack === "next") {
+          runCommand(`npx ${NextCommand}@latest . --ts`, projectPath);
+        }
+
+        const createFile: CreateFile = {
+          name: projectName,
+          path: projectPath,
+          stack: selectedStack,
+        };
+
+        fs.writeFileSync(
+          path.join(projectPath, "barong.config.json"),
+          JSON.stringify(createFile, null, 2)
+        );
+
+        log(chalk.green("\n✅ Setup complete!\n"));
+
+        log(
+          chalk.yellow("⚠️ Report bug:"),
+          chalk.gray("https://github.com/BarongTS/BarongTS/issues")
+        );
       }
 
-      const nextAction = await withCtrlX(() =>
+      const finish = await withCtrlX(() =>
         prompt([
           {
             type: "confirm",
-            name: "selectAgain",
-            message: "Do you want to select another stack?",
+            name: "done",
+            message: "Finish?",
             default: true,
           },
         ])
       );
 
-      if (!nextAction.selectAgain) {
-        console.clear();
-        console.log(chalk.green("\nThank you for using BarongTS CLI. Goodbye!\n"));
+      if (finish.done) {
+        log(chalk.green("\n✅ Thank you for using BarongTS CLI!\n"));
         continueMenu = false;
       }
+    } catch (err: any) {
+      if (err?.message === "User canceled") {
+        log(chalk.bgRed("\n❌ User canceled. Exiting...\n"));
+        break;
+      }
+
+      throw err;
     }
-  } catch (err: any) {
-    if (err?.message === "User canceled") {
-      console.clear();
-      console.log(chalk.bgRed("\n❌ User canceled. Exiting...\n"));
-      break;
-    }
-    throw err;
-  }
   }
 }
 
