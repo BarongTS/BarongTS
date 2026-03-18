@@ -1,5 +1,5 @@
 {
-  "name": "barong-ts",
+  "name": "@barong/barong-ts",
   "version": "1.0.0",
   "description": "A beginner friendly CLI tool to quickly set up Typescript projects",
   "main": "dist/cli.js",
@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "postbuild": "node -e \"const fs = require('fs'); const p = 'dist/cli.js'; fs.writeFileSync(p, '#!/usr/bin/env node\\n' + fs.readFileSync(p));\"",
     "start": "node dist/cli.js"
   },
   "jest": {
@@ -37,9 +38,14 @@
     "@babel/preset-typescript": "^7.28.5",
     "@jest/globals": "^30.3.0",
     "@types/jest": "^30.0.0",
+    "@types/node": "^25.5.0",
     "babel-jest": "^30.3.0",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "inquirer": "^13.3.2"
   }
 }
