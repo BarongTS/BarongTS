@@ -10,6 +10,7 @@
 <p align="center">
   <img src="https://img.shields.io/npm/v/@barong/barong-ts" alt="npm version">
   <img src="https://img.shields.io/npm/l/@barong/barong-ts" alt="npm license">
+  <img src="https://img.shields.io/npm/dm/@barong/barong-ts" alt="npm download">
   <img src="https://img.shields.io/badge/github-BarongTS-blue?logo=github" alt="repo">
   <img src="https://img.shields.io/badge/coverage-12%25-red" alt="coverage">
   <img src="https://img.shields.io/badge/Type-CLI-CLI" alt="type">
