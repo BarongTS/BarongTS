@@ -126,5 +126,5 @@ MIT License © 2026
 ---
 
 <p align="center">
-  Made with ❤️ by BarongTS
+  Made with ❤️ by Mipan-Zuzu
 </p>
